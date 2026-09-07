@@ -1,0 +1,277 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  landowner
+  requiring_body
+  lao_district
+  state_official
+  central_ministry
+  dolr_admin
+}
+
+enum ParcelProvenance {
+  ulpin_verified
+  svamitva_digitised
+  legacy_migrated
+  self_declared_pending
+}
+
+enum ParcelStatus {
+  clear
+  restricted
+  disputed
+  possessed
+}
+
+enum StageStatus {
+  on_track
+  at_risk
+  overdue
+  completed
+}
+
+enum RiskTier {
+  low
+  medium
+  high
+}
+
+enum GrievanceStatus {
+  submitted
+  under_review
+  field_verification
+  resolved
+  rejected
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password_hash String
+  role          Role
+  state_code    String?
+  district_code String?
+  created_at    DateTime @default(now())
+
+  projects           Project[]           @relation("RequiringBodyProjects")
+  compensationRecord CompensationRecord[] @relation("ApprovedCompensations")
+  grievances         GrievanceTicket[]   @relation("SubmittedGrievances")
+  auditLogs          AuditLog[]          @relation("UserAuditLogs")
+
+  @@map("users")
+}
+
+model State {
+  id            String    @id @default(uuid())
+  state_code    String    @unique
+  state_name    String
+  support_from  DateTime?
+  support_until DateTime?
+
+  districts District[]
+
+  @@map("states")
+}
+
+model District {
+  id            String    @id @default(uuid())
+  district_code String    @unique
+  district_name String
+  state_code    String
+  support_from  DateTime?
+  support_until DateTime?
+
+  state State @relation(fields: [state_code], references: [state_code])
+
+  @@map("districts")
+}
+
+model Parcel {
+  id                String           @id @default(uuid())
+  ulpin_id          String?          @unique
+  state_code        String
+  district_code     String
+  village_mouza     String
+  khatian_plot_no   String
+  geometry_geojson  Json
+  provenance        ParcelProvenance @default(legacy_migrated)
+  restriction_flags Json             @default("[]")
+  current_status    ParcelStatus     @default(clear)
+  created_at        DateTime         @default(now())
+
+  projectParcels       ProjectParcel[]
+  compensationRecords CompensationRecord[]
+
+  @@map("parcels")
+}
+
+model Project {
+  id                String   @id @default(uuid())
+  name              String
+  requiring_body_id String
+  purpose           String
+  boundary_geojson  Json
+  state_code        String
+  district_code     String
+  current_stage_id  String
+  created_at        DateTime @default(now())
+
+  requiringBody User          @relation("RequiringBodyProjects", fields: [requiring_body_id], references: [id])
+  currentStage  WorkflowStage @relation(fields: [current_stage_id], references: [id])
+
+  stageHistory        ProjectStageHistory[]
+  projectParcels      ProjectParcel[]
+  compensationRecords CompensationRecord[]
+  riskScores          RiskScore[]
+  rrRecords           RRRecord[]
+
+  @@map("projects")
+}
+
+model WorkflowStage {
+  id                      String @id @default(uuid())
+  stage_name              String @unique
+  stage_order             Int
+  statutory_duration_days Int
+  description             String
+
+  projects     Project[]
+  stageHistory ProjectStageHistory[]
+
+  @@map("workflow_stages")
+}
+
+model ProjectStageHistory {
+  id                          String      @id @default(uuid())
+  project_id                  String
+  stage_id                    String
+  entered_at                  DateTime    @default(now())
+  sla_deadline                DateTime
+  status                      StageStatus @default(on_track)
+  consent_percentage_collected Float       @default(0.0)
+
+  project Project       @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  stage   WorkflowStage @relation(fields: [stage_id], references: [id])
+
+  @@map("project_stage_history")
+}
+
+model ProjectParcel {
+  id                 String @id @default(uuid())
+  project_id         String
+  parcel_id          String
+  overlap_confidence Float  @default(1.0)
+  conflict_flags     Json   @default("[]")
+
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  parcel  Parcel  @relation(fields: [parcel_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_id, parcel_id])
+  @@map("project_parcels")
+}
+
+model CompensationRecord {
+  id                    String   @id @default(uuid())
+  project_id            String
+  parcel_id             String
+  market_value          Float
+  rural_multiplier      Float
+  asset_value           Float
+  solatium              Float
+  interest_amount       Float
+  total_compensation    Float
+  calculation_breakdown Json
+  calculated_at         DateTime @default(now())
+  approved_by           String?
+
+  project  Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  parcel   Parcel  @relation(fields: [parcel_id], references: [id], onDelete: Cascade)
+  approver User?   @relation("ApprovedCompensations", fields: [approved_by], references: [id])
+
+  @@map("compensation_records")
+}
+
+model AuditLog {
+  id                 String   @id @default(uuid())
+  record_type        String
+  reference_id       String
+  action             String
+  file_hash          String?
+  event_payload_hash String
+  previous_hash      String
+  chain_hash         String
+  performed_by       String
+  created_at         DateTime @default(now())
+
+  user User @relation("UserAuditLogs", fields: [performed_by], references: [id])
+
+  @@map("audit_log")
+}
+
+model RiskScore {
+  id                      String   @id @default(uuid())
+  project_id              String
+  risk_score              Float
+  risk_tier               RiskTier
+  top_contributing_factors Json
+  computed_at             DateTime @default(now())
+
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("risk_scores")
+}
+
+model GrievanceTicket {
+  id             String          @id @default(uuid())
+  record_type    String
+  reference_id   String
+  submitted_by   String
+  issue_category String
+  description    String
+  evidence_url   String?
+  status         GrievanceStatus @default(submitted)
+  sla_deadline   DateTime
+  escalated      Boolean         @default(false)
+  created_at     DateTime        @default(now())
+  resolved_at    DateTime?
+
+  submitter User @relation("SubmittedGrievances", fields: [submitted_by], references: [id])
+
+  @@map("grievance_tickets")
+}
+
+model RRRecord {
+  id                            String   @id @default(uuid())
+  project_id                    String
+  family_id                     String
+  entitlement_type              String
+  entitlement_status            String
+  resettlement_site             String?
+  livelihood_restoration_status String   @default("pending")
+  created_at                    DateTime @default(now())
+
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("rr_records")
+}
+
+model StateAdapter {
+  id               String   @id @default(uuid())
+  state_code       String   @unique
+  adapter_name     String
+  endpoint_config  Json
+  field_mapping    Json
+  is_active        Boolean  @default(true)
+  last_sync_status String   @default("idle")
+  updated_at       DateTime @updatedAt
+
+  @@map("state_adapters")
+}
