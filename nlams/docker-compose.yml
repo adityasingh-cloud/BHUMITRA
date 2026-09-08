@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nlams
+      POSTGRES_PASSWORD: nlams_dev_password
+      POSTGRES_DB: nlams
+    ports:
+      - "5432:5432"
+    volumes:
+      - nlams_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nlams -d nlams"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Litigation & delay risk model (Module 5), ported from BHUMITRA/ml_service.
+  # server/src/services/riskBridge.ts calls this; if it's not running, that
+  # service falls back to a local rule-based estimate automatically.
+  ml_service:
+    build:
+      context: ./ml_service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+
+volumes:
+  nlams_pgdata:
