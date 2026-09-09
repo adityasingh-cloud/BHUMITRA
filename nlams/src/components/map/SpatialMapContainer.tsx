@@ -269,7 +269,7 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const [zoom, setZoom] = useState(5);
 
-  const theme = MAP_THEMES[themeId];
+  const theme = MAP_THEMES[themeId] ?? MAP_THEMES.nlams;
   const geojson = data as FeatureCollection<Polygon, ParcelFeatureProperties> | undefined;
   const visibleGeojson = useMemo(
     () =>
