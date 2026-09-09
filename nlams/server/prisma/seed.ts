@@ -1,8 +1,10 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type AuditAction, type RfctlarrStage } from "@prisma/client";
 import { createHash } from "node:crypto";
 import { buildProposals } from "../../src/data/mockData.js";
 import { DISTRICT_COORDS } from "./districtCoords.js";
+import { addAuditEntry, verifyChainIntegrity } from "../src/lib/auditVault.js";
 
 const prisma = new PrismaClient();
 
@@ -122,6 +124,131 @@ async function main() {
         `;
       }
     }
+  }
+
+  // Queue chronological audit blocks for all seeded initial states, stage advancements, and document filings
+  interface SeedAuditEvent {
+    proposalId: string;
+    action: AuditAction;
+    fromStage?: RfctlarrStage | null;
+    toStage?: RfctlarrStage | null;
+    fileBuffer?: Buffer | null;
+    eventPayload: Record<string, unknown>;
+    createdAt: Date;
+  }
+
+  const auditEvents: SeedAuditEvent[] = [];
+
+  for (const p of proposals) {
+    // 1. Initial Intake audit block
+    auditEvents.push({
+      proposalId: p.id,
+      action: "STAGE_ADVANCE",
+      fromStage: null,
+      toStage: "INTAKE",
+      eventPayload: {
+        projectName: p.projectName,
+        requiringBody: p.requiringBody,
+        state: p.state,
+        district: p.district,
+        totalAreaHa: p.totalAreaHa,
+        affectedFamilies: p.affectedFamilies,
+      },
+      createdAt: new Date(p.initiatedAt),
+    });
+
+    // 2. Current stage progression if beyond INTAKE
+    if (p.currentStage !== "INTAKE") {
+      auditEvents.push({
+        proposalId: p.id,
+        action: "STAGE_ADVANCE",
+        fromStage: "INTAKE",
+        toStage: p.currentStage,
+        eventPayload: {
+          fromStage: "INTAKE",
+          toStage: p.currentStage,
+          projectName: p.projectName,
+          advancedAt: p.stageEnteredAt,
+        },
+        createdAt: new Date(p.stageEnteredAt),
+      });
+    }
+
+    // 3. Document filings and verifications
+    for (const doc of p.documents) {
+      const buffer = synthesizeFile(p.id, doc.name, doc.type);
+      const sha256 = sha256Hex(buffer);
+      const docUploadTime = new Date(doc.uploadedAt);
+
+      auditEvents.push({
+        proposalId: p.id,
+        action: "DOCUMENT_UPLOAD",
+        fileBuffer: buffer,
+        eventPayload: {
+          name: doc.name,
+          type: doc.type,
+          sha256,
+          sizeKb: Math.max(1, Math.round(buffer.byteLength / 1024)),
+        },
+        createdAt: docUploadTime,
+      });
+
+      if (doc.verified) {
+        auditEvents.push({
+          proposalId: p.id,
+          action: "DOCUMENT_VERIFY",
+          eventPayload: {
+            name: doc.name,
+            type: doc.type,
+            verified: true,
+            integrityMatch: true,
+            sha256,
+          },
+          createdAt: new Date(docUploadTime.getTime() + 1000),
+        });
+      }
+    }
+  }
+
+  // Sort events strictly chronologically
+  auditEvents.sort((a, b) => {
+    const diff = a.createdAt.getTime() - b.createdAt.getTime();
+    if (diff !== 0) return diff;
+    return a.proposalId.localeCompare(b.proposalId);
+  });
+
+  // Ensure monotonically increasing timestamps to guarantee stable ordering
+  let lastTime = 0;
+  for (const ev of auditEvents) {
+    let t = ev.createdAt.getTime();
+    if (t <= lastTime) {
+      t = lastTime + 10;
+      ev.createdAt = new Date(t);
+    }
+    lastTime = t;
+  }
+
+  console.log(`Writing ${auditEvents.length} chronological audit blocks into cryptographic hash chain…`);
+  for (const ev of auditEvents) {
+    await addAuditEntry(prisma, {
+      proposalId: ev.proposalId,
+      action: ev.action,
+      fromStage: ev.fromStage,
+      toStage: ev.toStage,
+      fileBuffer: ev.fileBuffer,
+      eventPayload: ev.eventPayload,
+      createdAt: ev.createdAt,
+    });
+  }
+
+  console.log("Verifying blockchain cryptographic hash chain integrity…");
+  const verification = await verifyChainIntegrity();
+  console.log(
+    `Blockchain verification result: ${verification.verifiedBlocks}/${verification.totalRecords} blocks verified (chainIntact: ${verification.chainIntact}, head: ${verification.headHash.slice(0, 16)}…)`,
+  );
+
+  if (!verification.chainIntact) {
+    throw new Error(`Chain integrity check failed: ${verification.reason}`);
   }
 
   console.log("Done.");
