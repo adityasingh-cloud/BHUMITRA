@@ -10,10 +10,10 @@ import {
 import type { ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { AuthProvider } from "../context/AuthContext";
-import { RoleProvider } from "../context/RoleContext";
-import { DemoProvider } from "../context/DemoContext";
-import { I18nProvider } from "../context/I18nContext";
+import { AuthProvider } from "@/context/AuthContext";
+import { RoleProvider } from "@/context/RoleContext";
+import { DemoProvider } from "@/context/DemoContext";
+import { I18nProvider } from "@/context/I18nContext";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 

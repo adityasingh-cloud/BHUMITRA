@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { Proposal } from "@/data/mockData";
-import { useAuth, ROLE_LABEL, ROLE_CAN_ACT, type Role } from "@/context/AuthContext";
+import { useAuth, ROLE_LABEL, ROLE_CAN_ACT, type Role } from "./AuthContext";
 import { useProposalsQuery } from "@/hooks/useProposals";
 
 export const NO_CREDENTIALS_HINT = "Requires LAO credentials";
