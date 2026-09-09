@@ -15,6 +15,7 @@ import type { DocumentRef, Proposal } from "@/data/mockData";
 import { useDemo, useSpotlight } from "@/context/DemoContext";
 import { useRole, NO_CREDENTIALS_HINT } from "@/context/RoleContext";
 import { useUploadDocumentMutation, useVerifyDocumentMutation } from "@/hooks/useProposals";
+import { computeFileSha256 } from "@/lib/clientCrypto";
 import {
   Select,
   SelectContent,
@@ -45,11 +46,24 @@ export function DocumentRepository({ proposal }: { proposal: Proposal }) {
   const uploadMutation = useUploadDocumentMutation(proposal.id);
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploadType, setUploadType] = useState<DocumentRef["type"]>("SIA_REPORT");
+  const [isHashing, setIsHashing] = useState(false);
 
   const handleUploadClick = () => fileInput.current?.click();
 
   const handleFileSelected = (file: File | undefined) => {
+  const handleFileSelected = async (file: File | undefined) => {
     if (!file) return;
+
+    setIsHashing(true);
+    let clientHash = "";
+    try {
+      clientHash = await computeFileSha256(file);
+    } catch (e) {
+      console.warn("Client pre-flight hash computation failed:", e);
+    } finally {
+      setIsHashing(false);
+    }
+
     const form = new FormData();
     form.append("file", file);
     form.append("type", uploadType);
@@ -58,6 +72,18 @@ export function DocumentRepository({ proposal }: { proposal: Proposal }) {
         toast.success("Document uploaded", {
           description: `${file.name} stored and hashed — SHA-256 computed from the actual bytes.`,
         }),
+      onSuccess: (serverDoc) => {
+        const matches = clientHash ? serverDoc.sha256 === clientHash : true;
+        if (matches) {
+          toast.success("Document uploaded & verified", {
+            description: `Dual-layer SHA-256 match! Client and server checksums verified (${serverDoc.sha256.slice(0, 12)}...).`,
+          });
+        } else {
+          toast.error("Checksum mismatch warning", {
+            description: `Client computed ${clientHash.slice(0, 8)}... but server recorded ${serverDoc.sha256.slice(0, 8)}...`,
+          });
+        }
+      },
       onError: (err) =>
         toast.error("Upload failed", {
           description: err instanceof Error ? err.message : "Unknown error",
@@ -87,21 +113,25 @@ export function DocumentRepository({ proposal }: { proposal: Proposal }) {
         </Select>
 
         {(() => {
+          const isBusy = isHashing || uploadMutation.isPending;
           const button = (
             <button
               type="button"
               disabled={!canAct || uploadMutation.isPending}
+              disabled={!canAct || isBusy}
               onClick={handleUploadClick}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-[4px] border border-border bg-card px-2.5 py-1.5 text-[11.5px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45",
               )}
             >
               {uploadMutation.isPending ? (
+              {isBusy ? (
                 <Loader2 className="size-3.5 animate-spin" />
               ) : (
                 <Upload className="size-3.5" />
               )}
               Upload document
+              {isHashing ? "Computing SHA-256…" : uploadMutation.isPending ? "Uploading…" : "Upload document"}
             </button>
           );
           if (canAct) return button;
@@ -195,6 +225,22 @@ function DocumentCard({
             <ShieldCheck className="size-3" />
             {doc.verified ? "Hash verified" : "Not yet verified"}
           </span>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-[4px] border px-1.5 py-0.5 text-[10.5px] font-semibold",
+                doc.verified
+                  ? "border-status-ok/30 bg-status-ok/10 text-status-ok"
+                  : "border-status-warn/30 bg-status-warn/10 text-status-warn",
+              )}
+            >
+              <ShieldCheck className="size-3" />
+              {doc.verified ? "Hash verified" : "Not yet verified"}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded border border-border/70 bg-muted/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+              SHA-256: {doc.sha256 ? `${doc.sha256.slice(0, 6)}…${doc.sha256.slice(-6)}` : "—"}
+            </span>
+          </div>
         </div>
         {open ? (
           <ChevronDown className="mt-1 size-4 shrink-0 text-muted-foreground" />

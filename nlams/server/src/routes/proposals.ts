@@ -45,6 +45,14 @@ proposalsRouter.get("/:id/audit-log", async (req, res) => {
     return;
   }
 
+  // Calculate sequential block heights across the global chronological chain
+  const allLogs = await prisma.auditLog.findMany({
+    select: { id: true },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  });
+  const heightMap = new Map<string, number>();
+  allLogs.forEach((l, idx) => heightMap.set(l.id, idx + 1));
+
   const entries = await prisma.auditLog.findMany({
     where: { proposalId: proposal.id },
     include: { user: { select: { name: true, role: true } } },
@@ -53,10 +61,15 @@ proposalsRouter.get("/:id/audit-log", async (req, res) => {
   res.json(
     entries.map((e) => ({
       id: e.id,
+      blockHeight: heightMap.get(e.id) ?? 1,
       action: e.action,
       fromStage: e.fromStage,
       toStage: e.toStage,
       metadata: e.metadata,
+      chainHash: e.chainHash,
+      previousHash: e.previousHash,
+      eventPayloadHash: e.eventPayloadHash,
+      fileHash: e.fileHash,
       createdAt: e.createdAt.toISOString(),
       actor: e.user ? { name: e.user.name, role: e.user.role } : null,
     })),
@@ -84,10 +97,12 @@ proposalsRouter.patch("/:id/advance-stage", async (req, res) => {
     return;
   }
 
+  const advancedAt = new Date();
   const updated = await prisma.$transaction(async (tx) => {
     const proposalUpdate = await tx.proposal.update({
       where: { id: proposal.id },
       data: { currentStage: to, stageEnteredAt: new Date() },
+      data: { currentStage: to, stageEnteredAt: advancedAt },
       include,
     });
     await addAuditEntry(tx, {
@@ -96,6 +111,12 @@ proposalsRouter.patch("/:id/advance-stage", async (req, res) => {
       action: "STAGE_ADVANCE",
       fromStage: proposal.currentStage,
       toStage: to,
+      eventPayload: {
+        fromStage: proposal.currentStage,
+        toStage: to,
+        projectName: proposal.projectName,
+        advancedAt: advancedAt.toISOString(),
+      },
     });
     return proposalUpdate;
   });
