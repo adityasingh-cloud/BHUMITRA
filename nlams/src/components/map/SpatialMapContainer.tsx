@@ -261,7 +261,7 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
   const [showLabels, setShowLabels] = useState(true);
   const [showDistricts, setShowDistricts] = useState(true);
   const [showBlocks, setShowBlocks] = useState(true);
-  const [showBhuvanAdmin, setShowBhuvanAdmin] = useState(false);
+  const [showBhuvanAdmin, setShowBhuvanAdmin] = useState(true);
   const [showLulc, setShowLulc] = useState(false);
   const [basemap, setBasemap] = useState<(typeof BASEMAPS)[number]["value"]>("satellite");
   const [selected, setSelected] = useState<Selection | null>(null);
