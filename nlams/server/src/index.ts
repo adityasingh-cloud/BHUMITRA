@@ -21,7 +21,7 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 
 // publicRouter is unauthenticated and must be mounted before documentsRouter
 // below — documentsRouter is mounted at the bare "/api" prefix with a
-// blanket requireNlamsUser, which would otherwise 401 every /api/public/*
+// blanket requireBHUMITRAUser, which would otherwise 401 every /api/public/*
 // request before Express ever tries to match it against publicRouter.
 app.use("/api/public", publicRouter);
 
@@ -43,7 +43,7 @@ app.use(
 
 const port = Number(process.env["PORT"] ?? 4000);
 app.listen(port, () => {
-  console.log(`NLAMS API listening on http://localhost:${port}`);
+  console.log(`BHUMITRA API listening on http://localhost:${port}`);
   startSlaAlertScheduler();
   scanForSlaAlerts()
     .then(({ scanned, created }) =>
@@ -51,3 +51,4 @@ app.listen(port, () => {
     )
     .catch((error) => console.error("[sla-scanner] startup scan failed", error));
 });
+

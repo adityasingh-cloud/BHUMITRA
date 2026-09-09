@@ -2,7 +2,7 @@ import "dotenv/config";
 import { supabaseAdmin } from "../src/lib/supabaseAdmin.js";
 
 /**
- * Creates the four NLAMS demo personas as real Supabase Auth users, with the
+ * Creates the four BHUMITRA demo personas as real Supabase Auth users, with the
  * role (and state scope) the app reads from app_metadata. Run once after
  * you've added SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY to server/.env:
  *
@@ -11,29 +11,29 @@ import { supabaseAdmin } from "../src/lib/supabaseAdmin.js";
  * Safe to re-run — existing accounts (matched by email) get their
  * app_metadata updated in place rather than being duplicated.
  */
-const DEMO_PASSWORD = "NlamsDemo!2026";
+const DEMO_PASSWORD = "BHUMITRADemo!2026";
 
 const PERSONAS = [
   {
-    email: "dolr.secretary@nlams.demo",
+    email: "dolr.secretary@BHUMITRA.demo",
     name: "R. Kulkarni",
     role: "DOLR_SECRETARY",
     states: [] as string[],
   },
   {
-    email: "district.collector@nlams.demo",
+    email: "district.collector@BHUMITRA.demo",
     name: "A. Naik",
     role: "DISTRICT_COLLECTOR",
     states: ["Goa"],
   },
   {
-    email: "lao@nlams.demo",
+    email: "lao@BHUMITRA.demo",
     name: "S. Desai",
     role: "LAO",
     states: ["Goa"],
   },
   {
-    email: "state.revenue@nlams.demo",
+    email: "state.revenue@BHUMITRA.demo",
     name: "M. Vaidya",
     role: "STATE_REVENUE",
     states: ["Maharashtra"],
@@ -87,3 +87,4 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+

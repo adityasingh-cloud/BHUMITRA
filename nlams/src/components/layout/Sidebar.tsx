@@ -29,7 +29,7 @@ export function SidebarContent({
     <div className="flex h-full flex-col bg-navy text-navy-foreground">
       <div className={cn("border-b border-white/10 py-4", compact ? "px-2 text-center" : "px-4")}>
         <div className={cn("font-bold tracking-[0.18em]", compact ? "text-[13px]" : "text-[17px]")}>
-          NLAMS
+          BHUMITRA
         </div>
         {!compact && (
           <div className="mt-1 text-[11px] leading-tight text-navy-muted">
@@ -97,3 +97,4 @@ export function Sidebar() {
     </>
   );
 }
+

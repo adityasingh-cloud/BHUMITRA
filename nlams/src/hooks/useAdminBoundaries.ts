@@ -25,24 +25,32 @@ async function fetchGeoJson<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function useWestBengalDistricts() {
+export function useStateDistricts(state: { code: string; slug: string }) {
   return useQuery({
-    queryKey: ["geo", "west-bengal-districts"],
+    queryKey: ["geo", `${state.slug}-districts`],
     queryFn: () =>
       fetchGeoJson<FeatureCollection<Polygon | MultiPolygon, DistrictFeatureProperties>>(
-        "/geo/west-bengal-districts.geojson",
+        `/geo/${state.slug}-districts.geojson`,
       ),
+    retry: false,
+    enabled: state.code === "WB",
     staleTime: Infinity,
   });
 }
 
-export function useWestBengalBlocks() {
+export function useStateBlocks(state: { code: string; slug: string }) {
   return useQuery({
-    queryKey: ["geo", "west-bengal-blocks"],
+    queryKey: ["geo", `${state.slug}-blocks`],
     queryFn: () =>
       fetchGeoJson<FeatureCollection<Polygon | MultiPolygon, BlockFeatureProperties>>(
-        "/geo/west-bengal-blocks.geojson",
+        `/geo/${state.slug}-blocks.geojson`,
       ),
+    retry: false,
+    enabled: state.code === "WB",
     staleTime: Infinity,
   });
 }
+
+export const useWestBengalDistricts = () =>
+  useStateDistricts({ code: "WB", slug: "west-bengal" });
+export const useWestBengalBlocks = () => useStateBlocks({ code: "WB", slug: "west-bengal" });

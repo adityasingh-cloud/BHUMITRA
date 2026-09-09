@@ -16,13 +16,13 @@ import { useI18n } from "@/context/I18nContext";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Executive Overview — NLAMS | Department of Land Resources" },
+      { title: "Executive Overview — BHUMITRA | Department of Land Resources" },
       {
         name: "description",
         content:
           "Real-time monitoring of land acquisition proposals, statutory timelines and compensation disbursal under the RFCTLARR Act, 2013.",
       },
-      { property: "og:title", content: "NLAMS Executive Overview" },
+      { property: "og:title", content: "BHUMITRA Executive Overview" },
       {
         property: "og:description",
         content:
@@ -83,3 +83,4 @@ function Dashboard() {
     </AppShell>
   );
 }
+

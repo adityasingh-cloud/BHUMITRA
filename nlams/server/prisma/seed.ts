@@ -49,7 +49,7 @@ function parcelPolygonWkt(center: [number, number], areaHa: number): string {
 function synthesizeFile(proposalId: string, docName: string, docType: string): Buffer {
   return Buffer.from(
     [
-      "NLAMS — National Land Acquisition & Management System",
+      "BHUMITRA — National Land Acquisition & Management System",
       "This is a seed-generated placeholder for a statutory filing.",
       `Proposal: ${proposalId}`,
       `Document: ${docName}`,
@@ -135,3 +135,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

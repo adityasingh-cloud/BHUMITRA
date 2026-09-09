@@ -65,10 +65,11 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: string[]; child
           {loading ? <RouteSkeleton /> : children}
         </main>
         <footer className="border-t border-border px-5 py-2 text-center text-[10px] text-muted-foreground print:hidden">
-          NLAMS v0.9 · National Land Acquisition &amp; Management System · Department of Land
+          BHUMITRA v0.9 · National Land Acquisition &amp; Management System · Department of Land
           Resources
         </footer>
       </div>
     </div>
   );
 }
+

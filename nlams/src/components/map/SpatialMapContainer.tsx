@@ -26,8 +26,8 @@ import "leaflet/dist/leaflet.css";
 import { formatINRFull } from "@/data/mockData";
 import { useParcelsGeoJson, type ParcelFeatureProperties } from "@/hooks/useParcels";
 import {
-  useWestBengalDistricts,
-  useWestBengalBlocks,
+  useStateDistricts,
+  useStateBlocks,
   type DistrictFeature,
   type DistrictFeatureProperties,
   type BlockFeature,
@@ -47,6 +47,7 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { INDIA_STATES, WEST_BENGAL, type IndiaState } from "@/lib/indiaStates";
 
 /** Blocks are only rendered once zoomed in this far — 349 of them at once
  * over all West Bengal is unreadable, and this roughly matches the zoom
@@ -227,6 +228,14 @@ function ZoomWatcher({ onZoom }: { onZoom: (zoom: number) => void }) {
   return null;
 }
 
+function StateViewport({ state }: { state: IndiaState }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(state.center, state.zoom, { animate: true });
+  }, [map, state]);
+  return null;
+}
+
 /** Flies to `request.bounds` whenever its `nonce` changes — driven by
  * clicking a district/block feature or a "zoom to" button, both of which
  * only have Leaflet layer bounds (not a live map instance) to work with. */
@@ -242,9 +251,10 @@ function FocusOnRequest({ request }: { request: FocusRequest | null }) {
 
 export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: SpatialMapContainerProps) {
   const { data, isLoading } = useParcelsGeoJson();
-  const { data: districtsData } = useWestBengalDistricts();
-  const { data: blocksData } = useWestBengalBlocks();
   const { person } = useRole();
+  const [selectedState, setSelectedState] = useState<IndiaState>(WEST_BENGAL);
+  const { data: districtsData } = useStateDistricts(selectedState);
+  const { data: blocksData } = useStateBlocks(selectedState);
   const [themeId, setThemeId] = useState<MapThemeId>("nlams");
   const [panelOpen, setPanelOpen] = useState(true);
   const [showCadastral, setShowCadastral] = useState(true);
@@ -261,13 +271,34 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
 
   const theme = MAP_THEMES[themeId];
   const geojson = data as FeatureCollection<Polygon, ParcelFeatureProperties> | undefined;
+  const visibleGeojson = useMemo(
+    () =>
+      geojson
+        ? {
+            ...geojson,
+            features: geojson.features.filter((feature) => feature.properties.state === selectedState.name),
+          }
+        : undefined,
+    [geojson, selectedState.name],
+  );
   const lulcLayer = selected?.kind === "parcel" ? lulcLayerFor(selected.properties.state) : null;
   const blocksVisible = showBlocks && zoom >= BLOCK_VISIBLE_ZOOM;
   const adminLabelsVisible = zoom >= ADMIN_LABEL_ZOOM;
+  const districtDisplayName = (name: string) =>
+    selectedState.code === "WB" ? wbDistrictDisplayName(name) : name;
+
+  const selectState = (code: string) => {
+    const next = INDIA_STATES.find((state) => state.code === code);
+    if (!next) return;
+    setSelectedState(next);
+    setSelected(null);
+    setFocusRequest(null);
+    setFitAllSignal(0);
+  };
 
   useEffect(() => {
-    if (!highlightedUlpin || !geojson) return;
-    const match = geojson.features.find((f) => f.properties.ulpin === highlightedUlpin);
+    if (!highlightedUlpin || !visibleGeojson) return;
+    const match = visibleGeojson.features.find((f) => f.properties.ulpin === highlightedUlpin);
     if (match) {
       setSelected({
         kind: "parcel",
@@ -275,7 +306,7 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
         centroid: polygonCentroid(match.geometry.coordinates[0]!),
       });
     }
-  }, [highlightedUlpin, geojson]);
+  }, [highlightedUlpin, visibleGeojson]);
 
   const selectParcel = (feature: Feature<Geometry, ParcelFeatureProperties>) => {
     if (feature.geometry.type !== "Polygon") return;
@@ -382,7 +413,7 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
     ) => void);
     if (adminLabelsVisible) {
       layer.bindTooltip(
-        `<span style="color:#ffffff;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.85)">${wbDistrictDisplayName(feature.properties.distName)}</span>`,
+        `<span style="color:#ffffff;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.85)">${districtDisplayName(feature.properties.distName)}</span>`,
         {
           permanent: true,
           direction: "center",
@@ -429,8 +460,8 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
    * (only for the currently-open block panel), not precomputed for all 349
    * blocks up front. */
   const parcelsInBlock = (block: BlockFeature): ParcelFeature[] => {
-    if (!geojson) return [];
-    return geojson.features.filter((f) => {
+    if (!visibleGeojson) return [];
+    return visibleGeojson.features.filter((f) => {
       if (f.properties.district !== block.properties.districtName) return false;
       const [lng, lat] = polygonCentroidLngLat(f.geometry.coordinates[0]!);
       return booleanPointInPolygon(turfPoint([lng, lat]), block.geometry);
@@ -473,8 +504,8 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
       </div>
 
       <MapContainer
-        center={[22.5, 79]}
-        zoom={5}
+        center={selectedState.center}
+        zoom={selectedState.zoom}
         scrollWheelZoom
         className="size-full"
         style={{ background: "#0b1220" }}
@@ -531,13 +562,14 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
           />
         )}
 
-        {showCadastral && geojson && (
-          <GeoJSON key={geojsonKey} data={geojson} style={styleFor} onEachFeature={onEachFeature} />
+        {showCadastral && visibleGeojson && (
+          <GeoJSON key={geojsonKey} data={visibleGeojson} style={styleFor} onEachFeature={onEachFeature} />
         )}
 
-        <FitToData data={geojson} highlightedUlpin={highlightedUlpin} fitAllSignal={fitAllSignal} />
+        <FitToData data={visibleGeojson} highlightedUlpin={highlightedUlpin} fitAllSignal={fitAllSignal} />
         <FocusOnRequest request={focusRequest} />
         <ZoomWatcher onZoom={setZoom} />
+        <StateViewport state={selectedState} />
       </MapContainer>
 
       {isLoading && (
@@ -552,6 +584,25 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
       {/* Layers and Tools panel */}
       {panelOpen && (
         <div className="panel absolute left-3 top-14 z-[1000] w-[252px] p-3">
+          <div className="label-xs">State / Union Territory</div>
+          <select
+            aria-label="Select state or union territory"
+            value={selectedState.code}
+            onChange={(event) => selectState(event.target.value)}
+            className="mt-2 h-8 w-full rounded-[4px] border border-border bg-card px-2 text-[11.5px] text-foreground"
+          >
+            <optgroup label="States">
+              {INDIA_STATES.filter((state) => state.kind === "state").map((state) => (
+                <option key={state.code} value={state.code}>{state.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Union Territories">
+              {INDIA_STATES.filter((state) => state.kind === "union-territory").map((state) => (
+                <option key={state.code} value={state.code}>{state.name}</option>
+              ))}
+            </optgroup>
+          </select>
+
           <div className="label-xs">Portal Style</div>
           <RadioGroup
             value={themeId}
@@ -598,7 +649,7 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
           </div>
 
           <div className="mt-3 border-t border-border pt-3">
-            <div className="label-xs">West Bengal — District &amp; Block</div>
+            <div className="label-xs">{selectedState.name} — District &amp; Block</div>
             <div className="mt-2 space-y-2">
               <LayerRow
                 label="District Boundaries"
@@ -624,7 +675,7 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
               className="mt-2.5 inline-flex items-center gap-1.5 rounded-[4px] border border-border bg-card px-2.5 py-1.5 text-[11.5px] font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
             >
               <Locate className="size-3.5" />
-              Zoom to West Bengal
+              Zoom to {selectedState.name}
             </button>
           </div>
 
@@ -797,16 +848,16 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
               const blocksInDistrict =
                 blocksData?.features.filter((f) => f.properties.districtName === distName) ?? [];
               const parcelsInDistrict =
-                geojson?.features.filter((f) => f.properties.district === distName) ?? [];
+                visibleGeojson?.features.filter((f) => f.properties.district === distName) ?? [];
               const proposalCount = new Set(parcelsInDistrict.map((f) => f.properties.proposalId))
                 .size;
               return (
                 <>
                   <div className="mt-3">
-                    <InfoBox label="District" value={wbDistrictDisplayName(distName)} />
+                    <InfoBox label="District" value={districtDisplayName(distName)} />
                   </div>
                   <dl className="mt-4 space-y-2.5 text-[12.5px]">
-                    <Row label="State" value="West Bengal" />
+                    <Row label="State" value={selectedState.name} />
                     <Row label="CD Blocks" value={String(blocksInDistrict.length)} mono />
                     <Row label="Seeded Proposals" value={String(proposalCount)} mono />
                     <Row label="Seeded Parcels" value={String(parcelsInDistrict.length)} mono />
@@ -837,11 +888,11 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
                     <InfoBox label="Block" value={selected.properties.blockName} />
                     <InfoBox
                       label="District"
-                      value={wbDistrictDisplayName(selected.properties.districtName)}
+                      value={districtDisplayName(selected.properties.districtName)}
                     />
                   </div>
                   <dl className="mt-4 space-y-2.5 text-[12.5px]">
-                    <Row label="State" value="West Bengal" />
+                    <Row label="State" value={selectedState.name} />
                     <Row label="Seeded Parcels" value={String(parcelsHere.length)} mono />
                   </dl>
                   <button
@@ -850,7 +901,7 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
                     className="mt-3 inline-flex items-center gap-1.5 rounded-[4px] border border-border bg-card px-2.5 py-1.5 text-[11.5px] font-medium text-foreground transition-colors hover:bg-muted"
                   >
                     <Locate className="size-3.5" />
-                    Back to {wbDistrictDisplayName(selected.properties.districtName)}
+                    Back to {districtDisplayName(selected.properties.districtName)}
                   </button>
                 </>
               );

@@ -1,6 +1,6 @@
 # LandTrack India
 
-Build a government-grade web application called NLAMS (National Land Acquisition & Management System) for India's Department of Land Resources. This is a real-time dashboard for tracking land acquisition under the RFCTLARR Act 2013.
+Build a government-grade web application called BHUMITRA (National Land Acquisition & Management System) for India's Department of Land Resources. This is a real-time dashboard for tracking land acquisition under the RFCTLARR Act 2013.
 
 STACK: React + React Router + Tailwind + shadcn/ui + Recharts + lucide-react.
 
@@ -20,7 +20,7 @@ DESIGN DIRECTION — read carefully, do NOT use your default styling:
 
 LAYOUT:
 
-- Fixed left sidebar (240px, navy) with the NLAMS wordmark, a small "Ministry of Rural Development" subtitle, and nav items: Dashboard, Proposals, Compensation Calculator, GIS Map View.
+- Fixed left sidebar (240px, navy) with the BHUMITRA wordmark, a small "Ministry of Rural Development" subtitle, and nav items: Dashboard, Proposals, Compensation Calculator, GIS Map View.
 
 - Top bar (white, 56px) with a breadcrumb on the left, and on the right: a role selector dropdown (District Collector – South Goa / Land Acquisition Officer / DoLR Secretary / State Revenue Dept), a bell icon with a red badge showing 4, and an avatar.
 
@@ -171,3 +171,4 @@ Beyond the core proposal/parcel/document/SLA-alert endpoints, the following stat
 `ml_service/` (Python FastAPI, `:8000`) is the risk-scoring microservice these call into — run it with `docker compose up -d ml_service` or manually (`cd ml_service && pip install -r requirements.txt && uvicorn main:app --port 8000`).
 
 The original `BHUMITRA/` folder (a separate Express backend with its own JWT/bcrypt auth and Postgres schema) was the source for this port but is not wired into the running app — it can be removed once the above is verified end-to-end.
+

@@ -1,4 +1,4 @@
-export type MapThemeId = "nlams" | "tn" | "wb";
+export type MapThemeId = "BHUMITRA" | "tn" | "wb";
 
 export interface MapTheme {
   id: MapThemeId;
@@ -21,13 +21,13 @@ export interface MapTheme {
  * reference screenshot was available for that one, so it's a plausible
  * govt-portal look (deep green, blue cadastral lines), not a pixel clone.
  * Neither reproduces the real portals' logos/emblems — these are demo skins
- * inside NLAMS, not the actual government sites.
+ * inside BHUMITRA, not the actual government sites.
  */
 export const MAP_THEMES: Record<MapThemeId, MapTheme> = {
-  nlams: {
-    id: "nlams",
-    label: "NLAMS Standard",
-    portalTitle: "NLAMS Cadastral Viewer",
+  BHUMITRA: {
+    id: "BHUMITRA",
+    label: "BHUMITRA Standard",
+    portalTitle: "BHUMITRA Cadastral Viewer",
     portalSubtitle: "National Land Acquisition & Management System",
     accent: "#0f2942",
     accentForeground: "#ffffff",
@@ -83,3 +83,4 @@ const STATE_LULC_LAYER: Record<string, string> = {
 export function lulcLayerFor(state: string | null): string | null {
   return state ? (STATE_LULC_LAYER[state] ?? null) : null;
 }
+

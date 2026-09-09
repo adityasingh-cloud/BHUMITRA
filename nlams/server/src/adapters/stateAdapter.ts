@@ -22,6 +22,7 @@ export abstract class BaseStateAdapter {
   /** Fetch a raw parcel record from the state portal API. */
   abstract fetchParcel(stateSpecificId: string): Promise<Record<string, unknown> & { success: boolean }>;
 
-  /** Map the state-specific payload to the canonical Bhumitra/NLAMS parcel shape. */
+  /** Map the state-specific payload to the canonical Bhumitra/BHUMITRA parcel shape. */
   abstract mapToCanonical(rawData: Record<string, unknown>): CanonicalParcel;
 }
+

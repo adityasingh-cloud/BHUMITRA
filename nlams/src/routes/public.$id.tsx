@@ -8,7 +8,7 @@ import { ApiError } from "@/lib/api";
 export const Route = createFileRoute("/public/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `${params.id} — Public Case Record — NLAMS` },
+      { title: `${params.id} — Public Case Record — BHUMITRA` },
       {
         name: "description",
         content: `Public, non-identifying disclosure for land acquisition case ${params.id}.`,
@@ -109,3 +109,4 @@ function PublicProposalDetailPage() {
     </PublicShell>
   );
 }
+

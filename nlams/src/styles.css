@@ -93,7 +93,7 @@
   --input: oklch(0.918 0.005 258);
   --ring: oklch(0.45 0.15 262);
 
-  /* NLAMS institutional palette */
+  /* BHUMITRA institutional palette */
   --navy: oklch(0.264 0.048 251);
   --navy-foreground: oklch(0.97 0.005 258);
   --navy-muted: oklch(0.66 0.03 250);
@@ -190,16 +190,16 @@
   box-shadow: 0 1px 2px oklch(0.264 0.048 251 / 0.06);
 }
 
-@keyframes nlams-alert-pulse {
+@keyframes BHUMITRA-alert-pulse {
   0%, 100% { box-shadow: 0 1px 2px oklch(0.264 0.048 251 / 0.06); }
   50% { box-shadow: 0 0 0 3px oklch(0.487 0.185 27.5 / 0.12); }
 }
 
-@utility nlams-pulse {
-  animation: nlams-alert-pulse 2.4s ease-in-out infinite;
+@utility BHUMITRA-pulse {
+  animation: BHUMITRA-alert-pulse 2.4s ease-in-out infinite;
 }
 
-@keyframes nlams-spotlight {
+@keyframes BHUMITRA-spotlight {
   0%, 100% { box-shadow: 0 0 0 0 oklch(0.264 0.048 251 / 0); }
   50% { box-shadow: 0 0 0 3px oklch(0.264 0.048 251 / 0.55); }
 }
@@ -207,11 +207,11 @@
 @utility demo-spotlight {
   outline: 2px solid var(--color-navy);
   outline-offset: 2px;
-  animation: nlams-spotlight 1.1s ease-in-out 2;
+  animation: BHUMITRA-spotlight 1.1s ease-in-out 2;
   border-radius: 6px;
 }
 
-@keyframes nlams-shimmer {
+@keyframes BHUMITRA-shimmer {
   0% { background-position: -420px 0; }
   100% { background-position: 420px 0; }
 }
@@ -226,6 +226,7 @@
   );
   background-size: 420px 100%;
   background-repeat: no-repeat;
-  animation: nlams-shimmer 1.15s linear infinite;
+  animation: BHUMITRA-shimmer 1.15s linear infinite;
   border-radius: 4px;
 }
+

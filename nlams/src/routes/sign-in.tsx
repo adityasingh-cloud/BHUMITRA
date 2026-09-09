@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/sign-in")({
-  head: () => ({ meta: [{ title: "Sign in — NLAMS" }] }),
+  head: () => ({ meta: [{ title: "Sign in — BHUMITRA" }] }),
   component: SignInPage,
 });
 
@@ -21,3 +21,4 @@ function SignInPage() {
     </div>
   );
 }
+
