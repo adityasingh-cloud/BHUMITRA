@@ -20,7 +20,7 @@ export const Route = createFileRoute("/map-view")({
       {
         name: "description",
         content:
-          "Spatial view of ULPIN cadastral parcels over OpenStreetMap, with ISRO Bhuvan administrative boundary overlays.",
+          "Spatial view of ULPIN cadastral parcels with local state and district boundaries.",
       },
       { property: "og:title", content: "Cadastral GIS Viewer — BHUMITRA" },
       {
@@ -49,7 +49,7 @@ function MapViewPage() {
     <AppShell breadcrumb={["BHUMITRA", "GIS Map View"]}>
       <PageHeader
         title={t("page.map.title")}
-        subtitle="ULPIN-linked cadastral parcels on OpenStreetMap · ISRO Bhuvan boundary overlay available"
+        subtitle="ULPIN-linked cadastral parcels with state and district boundaries"
       />
       {mounted ? (
         <Suspense fallback={<MapSkeleton />}>

@@ -14,6 +14,11 @@ export interface BlockFeatureProperties {
 export type DistrictFeature = Feature<Polygon | MultiPolygon, DistrictFeatureProperties>;
 export type BlockFeature = Feature<Polygon | MultiPolygon, BlockFeatureProperties>;
 
+interface NationalDistrictProperties {
+  NAME_1?: string;
+  NAME_2?: string;
+}
+
 /**
  * Static assets under public/geo — served as-is by Vite, fetched directly
  * (not through the API server) and cached indefinitely by react-query since
@@ -28,12 +33,21 @@ async function fetchGeoJson<T>(path: string): Promise<T> {
 export function useStateDistricts(state: { code: string; slug: string }) {
   return useQuery({
     queryKey: ["geo", `${state.slug}-districts`],
-    queryFn: () =>
-      fetchGeoJson<FeatureCollection<Polygon | MultiPolygon, DistrictFeatureProperties>>(
-        `/geo/${state.slug}-districts.geojson`,
-      ),
-    retry: false,
-    enabled: state.code === "WB",
+    queryFn: async () => {
+      const national = await fetchGeoJson<
+        FeatureCollection<Polygon | MultiPolygon, NationalDistrictProperties>
+      >("/geo/india-districts.geojson");
+      return {
+        ...national,
+        features: national.features
+          .filter((feature) => feature.properties.NAME_1 === state.name)
+          .map((feature) => ({
+            ...feature,
+            properties: { distName: feature.properties.NAME_2 ?? "Unnamed district" },
+          })),
+      } as FeatureCollection<Polygon | MultiPolygon, DistrictFeatureProperties>;
+    },
+    retry: 1,
     staleTime: Infinity,
   });
 }

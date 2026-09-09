@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
   TileLayer,
-  WMSTileLayer,
   GeoJSON,
   useMap,
   useMapEvents,
@@ -39,7 +38,6 @@ import {
   MAP_THEME_LIST,
   SELECTED_PARCEL_COLOR,
   ADMIN_BOUNDARY_COLORS,
-  lulcLayerFor,
   type MapThemeId,
 } from "@/lib/mapThemes";
 import { wbDistrictDisplayName } from "@/lib/westBengalDistrictNames";
@@ -54,9 +52,8 @@ import { INDIA_STATES, WEST_BENGAL, type IndiaState } from "@/lib/indiaStates";
  * level at which the real TN Nilam viewer starts showing block/village
  * detail. */
 const BLOCK_VISIBLE_ZOOM = 9;
-/** Below this zoom, district/block name labels are skipped — otherwise 23
- * district labels (or 349 block labels) overlap into noise. */
-const ADMIN_LABEL_ZOOM = 7;
+/** Keep district names visible in the selected state view. */
+const ADMIN_LABEL_ZOOM = 5;
 
 export type ParcelStatus = "ACQUIRED" | "UNDER_AWARD" | "DISPUTED" | "NOTIFIED";
 
@@ -73,14 +70,6 @@ const STATUS_LABEL: Record<ParcelStatus, string> = {
   DISPUTED: "Disputed",
   NOTIFIED: "Notified",
 };
-
-/**
- * ISRO Bhuvan public WMS (bhuvan-vec1.nrsc.gov.in) — no API key required.
- * Verified layers: basemap:INDIA_STATE, basemap:INDIA_DIST, and the
- * per-state *_LULC (land use / land cover) layers used below.
- */
-const BHUVAN_WMS_URL = "https://bhuvan-vec1.nrsc.gov.in/bhuvan/wms";
-const BHUVAN_ADMIN_LAYERS = "basemap:INDIA_STATE,basemap:INDIA_DIST";
 
 const BASEMAPS = [
   { value: "satellite", label: "Satellite (Esri)" },
@@ -261,8 +250,6 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
   const [showLabels, setShowLabels] = useState(true);
   const [showDistricts, setShowDistricts] = useState(true);
   const [showBlocks, setShowBlocks] = useState(true);
-  const [showBhuvanAdmin, setShowBhuvanAdmin] = useState(true);
-  const [showLulc, setShowLulc] = useState(false);
   const [basemap, setBasemap] = useState<(typeof BASEMAPS)[number]["value"]>("satellite");
   const [selected, setSelected] = useState<Selection | null>(null);
   const [fitAllSignal, setFitAllSignal] = useState(0);
@@ -281,7 +268,6 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
         : undefined,
     [geojson, selectedState.name],
   );
-  const lulcLayer = selected?.kind === "parcel" ? lulcLayerFor(selected.properties.state) : null;
   const blocksVisible = showBlocks && zoom >= BLOCK_VISIBLE_ZOOM;
   const adminLabelsVisible = zoom >= ADMIN_LABEL_ZOOM;
   const districtDisplayName = (name: string) =>
@@ -522,28 +508,6 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
           />
         )}
 
-        {showBhuvanAdmin && (
-          <WMSTileLayer
-            url={BHUVAN_WMS_URL}
-            params={{
-              layers: BHUVAN_ADMIN_LAYERS,
-              format: "image/png",
-              transparent: true,
-              version: "1.1.1",
-            }}
-            attribution="Boundaries &copy; ISRO Bhuvan (NRSC)"
-          />
-        )}
-
-        {showLulc && lulcLayer && (
-          <WMSTileLayer
-            key={lulcLayer}
-            url={BHUVAN_WMS_URL}
-            params={{ layers: lulcLayer, format: "image/png", transparent: true, version: "1.1.1" }}
-            attribution="Land Use / Land Cover &copy; ISRO Bhuvan (NRSC)"
-          />
-        )}
-
         {showDistricts && districtsData && (
           <GeoJSON
             key={`districts-${districtsKey}`}
@@ -631,19 +595,6 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
                 label="Survey Number Labels"
                 checked={showLabels}
                 onChange={setShowLabels}
-              />
-              <LayerRow
-                label="Admin Boundaries (Bhuvan)"
-                checked={showBhuvanAdmin}
-                onChange={setShowBhuvanAdmin}
-              />
-              <LayerRow
-                label={
-                  lulcLayer ? "Land Use / Land Cover" : "Land Use / Land Cover — select a parcel"
-                }
-                checked={showLulc}
-                onChange={setShowLulc}
-                disabled={!lulcLayer}
               />
             </div>
           </div>
