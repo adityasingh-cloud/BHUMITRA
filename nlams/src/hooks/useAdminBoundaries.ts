@@ -32,19 +32,21 @@ async function fetchGeoJson<T>(path: string): Promise<T> {
 
 export function useStateDistricts(state: { code: string; slug: string }) {
   return useQuery({
-    queryKey: ["geo", `${state.slug}-districts`],
+    queryKey: ["geo", "india-districts"],
     queryFn: async () => {
-      const national = await fetchGeoJson<
+      const source = await fetchGeoJson<
         FeatureCollection<Polygon | MultiPolygon, NationalDistrictProperties>
-      >("/geo/india-districts.geojson");
+      >(`/geo/india-districts.geojson`);
+      // Filter features belonging to the requested state by matching the state code in properties.
+      const filtered = source.features.filter(
+        (f) => (f.properties.NAME_1 ?? "").toUpperCase() === state.code,
+      );
       return {
-        ...national,
-        features: national.features
-          .filter((feature) => feature.properties.NAME_1 === state.name)
-          .map((feature) => ({
-            ...feature,
-            properties: { distName: feature.properties.NAME_2 ?? "Unnamed district" },
-          })),
+        ...source,
+        features: filtered.map((feature) => ({
+          ...feature,
+          properties: { distName: feature.properties.NAME_2 ?? "Unnamed district" },
+        })),
       } as FeatureCollection<Polygon | MultiPolygon, DistrictFeatureProperties>;
     },
     retry: 1,
@@ -55,12 +57,18 @@ export function useStateDistricts(state: { code: string; slug: string }) {
 export function useStateBlocks(state: { code: string; slug: string }) {
   return useQuery({
     queryKey: ["geo", `${state.slug}-blocks`],
-    queryFn: () =>
-      fetchGeoJson<FeatureCollection<Polygon | MultiPolygon, BlockFeatureProperties>>(
-        `/geo/${state.slug}-blocks.geojson`,
-      ),
+    queryFn: async () => {
+      try {
+        return await fetchGeoJson<FeatureCollection<Polygon | MultiPolygon, BlockFeatureProperties>>(
+          `/geo/${state.slug}-blocks.geojson`
+        );
+      } catch {
+        // If block data is unavailable for the state, return undefined
+        return undefined as any;
+      }
+    },
     retry: false,
-    enabled: state.code === "WB",
+    enabled: !!state.slug && !!state.code,
     staleTime: Infinity,
   });
 }

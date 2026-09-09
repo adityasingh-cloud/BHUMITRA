@@ -28,7 +28,7 @@ interface AuthContextValue {
   /** Empty = national scope. */
   states: string[];
   displayName: string;
-  signOut: () => Promise<void>;
+
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role,
       states,
       displayName,
-      signOut: async () => {},
+
     };
   }, [session]);
 

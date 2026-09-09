@@ -1,4 +1,4 @@
-export type Lang = "en" | "hi";
+export type Lang = "en" | "hi" | "ta" | "te" | "mr" | "bn" | "pa" | "gu" | "kn" | "ml" | "or" | "as" | "ur";
 
 export const LANGUAGES: { value: Lang; label: string }[] = [
   { value: "en", label: "EN" },

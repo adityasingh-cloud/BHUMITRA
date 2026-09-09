@@ -263,7 +263,10 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
       geojson
         ? {
             ...geojson,
-            features: geojson.features.filter((feature) => feature.properties.state === selectedState.name),
+            features: geojson.features.filter((feature) => {
+        const parcelState = feature.properties.state;
+        return parcelState === selectedState.code || parcelState === selectedState.name;
+      }),
           }
         : undefined,
     [geojson, selectedState.name],
@@ -722,7 +725,7 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
           {selected.kind === "parcel" && (
             <>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <InfoBox label="State" value={selected.properties.state} />
+                <InfoBox label="State" value={selectedState.name} />
                 <InfoBox label="District" value={selected.properties.district} />
               </div>
               <div className="mt-2">

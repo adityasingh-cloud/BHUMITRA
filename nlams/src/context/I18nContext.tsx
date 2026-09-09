@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { TRANSLATIONS, type Lang } from "@/lib/translations";
 
-const STORAGE_KEY = "nlams.lang";
+const STORAGE_KEY = "bhumitra.lang";
 
 interface I18nContextValue {
   lang: Lang;
