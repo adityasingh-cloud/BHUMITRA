@@ -255,7 +255,7 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
   const [selectedState, setSelectedState] = useState<IndiaState>(WEST_BENGAL);
   const { data: districtsData } = useStateDistricts(selectedState);
   const { data: blocksData } = useStateBlocks(selectedState);
-  const [themeId, setThemeId] = useState<MapThemeId>("nlams");
+  const [themeId, setThemeId] = useState<MapThemeId>("BHUMITRA");
   const [panelOpen, setPanelOpen] = useState(true);
   const [showCadastral, setShowCadastral] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
@@ -269,7 +269,7 @@ export function SpatialMapContainer({ onParcelClick, highlightedUlpin }: Spatial
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const [zoom, setZoom] = useState(5);
 
-  const theme = MAP_THEMES[themeId] ?? MAP_THEMES.nlams;
+  const theme = MAP_THEMES[themeId] ?? MAP_THEMES.BHUMITRA ?? Object.values(MAP_THEMES)[0]!;
   const geojson = data as FeatureCollection<Polygon, ParcelFeatureProperties> | undefined;
   const visibleGeojson = useMemo(
     () =>
