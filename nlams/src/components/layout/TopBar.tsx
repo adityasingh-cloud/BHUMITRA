@@ -1,8 +1,8 @@
-import { Bell, LogOut, Menu, PlayCircle } from "lucide-react";
+import { Bell, Menu, PlayCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useRole } from "@/context/RoleContext";
-import { useAuth } from "@/context/AuthContext";
+
 import { useDemo } from "@/context/DemoContext";
 import { useI18n } from "@/context/I18nContext";
 import { LANGUAGES } from "@/lib/translations";
@@ -18,7 +18,7 @@ export function TopBar({
   onOpenNav?: () => void;
 }) {
   const { initials, person, roleLabel } = useRole();
-  const { signOut } = useAuth();
+
   const { lang, setLang, t } = useI18n();
   const { breachedQueue } = useDerived();
   const demo = useDemo();

@@ -40,7 +40,11 @@ export default defineConfig(async ({ command, mode }) => {
   const config: UserConfig = {
     define: envDefine,
     resolve: {
-      alias: { "@": `${process.cwd()}/src` },
+      alias: {
+        "@": `${process.cwd()}/src`,
+        "use-sync-external-store/shim/with-selector":
+          `${process.cwd()}/src/lib/useSyncExternalStoreWithSelector.ts`,
+      },
       dedupe: [
         "react",
         "react-dom",
@@ -52,6 +56,7 @@ export default defineConfig(async ({ command, mode }) => {
     },
     optimizeDeps: {
       include: ["react", "react-dom", "react-dom/client", "react/jsx-runtime", "react/jsx-dev-runtime"],
+      exclude: ["@tanstack/react-store"],
       ignoreOutdatedRequests: true,
     },
     server: {
